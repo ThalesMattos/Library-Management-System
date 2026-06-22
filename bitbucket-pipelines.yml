@@ -1,0 +1,56 @@
+image: python:3.12-slim
+
+pipelines:
+  default:
+    # ─────────────────────────────────────────────────────────────────────────
+    # ETAPA 1 — COMMIT STAGE
+    # Build da aplicação + testes unitários + testes de integração
+    # ─────────────────────────────────────────────────────────────────────────
+    - step:
+        name: "Commit Stage: Build, Testes Unitários e de Integração"
+        caches:
+          - pip
+        script:
+          - pip install --no-cache-dir -r requirements.txt
+          - pytest tests/unit tests/integration -v --tb=short
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # ETAPA 2 — ACCEPTANCE STAGE
+    # Testes de aceitação automatizados (jornadas completas de usuário)
+    # ─────────────────────────────────────────────────────────────────────────
+    - step:
+        name: "Acceptance Stage: Testes de Aceitação"
+        caches:
+          - pip
+        script:
+          - pip install --no-cache-dir -r requirements.txt
+          - pytest tests/acceptance -v --tb=short
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # ETAPA 3 — RELEASE STAGE
+    # Build da imagem Docker e push para Docker Hub
+    #
+    # Variáveis de ambiente necessárias (configurar em Bitbucket > Settings >
+    # Repository variables):
+    #   DOCKER_HUB_USERNAME — seu usuário Docker Hub
+    #   DOCKER_HUB_PASSWORD — sua senha / access token Docker Hub
+    # ─────────────────────────────────────────────────────────────────────────
+    - step:
+        name: "Release Stage: Build Docker e Deploy"
+        services:
+          - docker
+        script:
+          - IMAGE_NAME="${DOCKER_HUB_USERNAME}/library-management-system"
+          - docker build -t "${IMAGE_NAME}:${BITBUCKET_COMMIT}" .
+          - docker tag "${IMAGE_NAME}:${BITBUCKET_COMMIT}" "${IMAGE_NAME}:latest"
+          - echo "Build da imagem concluído com sucesso."
+          - |
+            if [ -n "$DOCKER_HUB_USERNAME" ] && [ -n "$DOCKER_HUB_PASSWORD" ]; then
+              echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
+              docker push "${IMAGE_NAME}:${BITBUCKET_COMMIT}"
+              docker push "${IMAGE_NAME}:latest"
+              echo "Imagem publicada: ${IMAGE_NAME}:latest"
+            else
+              echo "Variáveis DOCKER_HUB_USERNAME/DOCKER_HUB_PASSWORD não configuradas."
+              echo "Imagem construída localmente mas não publicada."
+            fi

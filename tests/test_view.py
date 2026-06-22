@@ -65,7 +65,7 @@ class TestPost(Test):
         super().setUp()
         admin_user = User(
             email="test@domain.com",
-            password=generate_password_hash("Test&Test", method="sha256"),
+            password=generate_password_hash("Test&Test", method="pbkdf2:sha256"),
             admin=True,
         )
         db.session.add(admin_user)

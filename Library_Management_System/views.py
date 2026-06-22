@@ -68,7 +68,7 @@ class RegisterView(MethodView):
     def post(self):
         name = request.form.get("name")
         email = request.form.get("email")
-        password = generate_password_hash(request.form.get("password"), method="sha256")
+        password = generate_password_hash(request.form.get("password"), method="pbkdf2:sha256")
         if User.query.filter_by(email=email).first():
             flash("User already exists!")
             return redirect(url_for("main.register"))
