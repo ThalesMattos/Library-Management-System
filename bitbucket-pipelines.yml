@@ -40,17 +40,15 @@ pipelines:
         services:
           - docker
         script:
-          - IMAGE_NAME="${DOCKER_HUB_USERNAME}/library-management-system"
-          - docker build -t "${IMAGE_NAME}:${BITBUCKET_COMMIT}" .
-          - docker tag "${IMAGE_NAME}:${BITBUCKET_COMMIT}" "${IMAGE_NAME}:latest"
+          - docker build -t library-management-system:${BITBUCKET_COMMIT} .
           - echo "Build da imagem concluído com sucesso."
           - |
             if [ -n "$DOCKER_HUB_USERNAME" ] && [ -n "$DOCKER_HUB_PASSWORD" ]; then
+              IMAGE_NAME="${DOCKER_HUB_USERNAME}/library-management-system"
+              docker tag library-management-system:${BITBUCKET_COMMIT} "${IMAGE_NAME}:latest"
               echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
-              docker push "${IMAGE_NAME}:${BITBUCKET_COMMIT}"
               docker push "${IMAGE_NAME}:latest"
               echo "Imagem publicada: ${IMAGE_NAME}:latest"
             else
-              echo "Variáveis DOCKER_HUB_USERNAME/DOCKER_HUB_PASSWORD não configuradas."
-              echo "Imagem construída localmente mas não publicada."
+              echo "Credenciais Docker Hub não configuradas — build concluído sem push."
             fi
